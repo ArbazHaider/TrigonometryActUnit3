@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Right Triangle Trig Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f4f6f8;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+  }
+
+  .sim-wrap {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    border: 1px solid #d0d8e0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    background: #fff;
+    margin: 12px;
+  }
+
+  /* ── CANVAS SIDE ── */
+  .sim-area {
+    background: linear-gradient(180deg, #0d1f30 0%, #122538 100%);
+    position: relative;
+  }
+  .sim-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #4fc3f7;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(79,195,247,0.12);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: #4caf82;
+    border-radius: 50%;
+    box-shadow: 0 0 6px #4caf82;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  canvas { display: block; width: 100%; }
+
+  .ratio-strip {
+    background: rgba(10,20,32,0.9);
+    padding: 8px 16px;
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: #7090a0;
+    border-top: 1px solid rgba(79,195,247,0.1);
+  }
+  .ratio-strip span { color: #f0c866; }
+
+  /* ── CONTROLS SIDE ── */
+  .controls {
+    background: #1a2a3a;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border-left: 1px solid rgba(255,255,255,0.06);
+  }
+  .section-title {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #d4a843;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(212,168,67,0.2);
+  }
+  .slider-group { display: flex; flex-direction: column; gap: 5px; }
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .slider-label span:first-child {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: #c8dff0;
+  }
+  .slider-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: #4fc3f7;
+    min-width: 44px;
+    text-align: right;
+  }
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    background: rgba(79,195,247,0.15);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: #4fc3f7;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(79,195,247,0.5);
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  .ratio-buttons {
+    display: flex;
+    gap: 6px;
+  }
+  .ratio-btn {
+    flex: 1;
+    background: rgba(79,195,247,0.08);
+    border: 1px solid rgba(79,195,247,0.25);
+    color: #c8dff0;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 7px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ratio-btn.active {
+    background: #4fc3f7;
+    color: #0d1821;
+    border-color: #4fc3f7;
+    font-weight: 600;
+  }
+  .ratio-btn:hover:not(.active) { background: rgba(79,195,247,0.15); }
+
+  .info-box {
+    background: rgba(10,20,32,0.5);
+    border: 1px solid rgba(79,195,247,0.12);
+    border-radius: 4px;
+    padding: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.74rem;
+    line-height: 1.85;
+    color: #7090a0;
+  }
+  .info-box .lbl { color: #c8dff0; }
+  .info-box .val { color: #f0c866; }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid rgba(212,168,67,0.4);
+    color: #d4a843;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 7px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .reset-btn:hover { background: rgba(212,168,67,0.1); }
+
+  .hint {
+    font-size: 0.72rem;
+    color: #4a6070;
+    line-height: 1.6;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 10px;
+  }
+
+  @media (max-width: 640px) {
+    .sim-wrap { grid-template-columns: 1fr; margin: 6px; }
+    .controls { border-left: none; border-top: 1px solid rgba(255,255,255,0.06); }
+  }
+</style>
+</head>
+<body>
+
+<div class="sim-wrap">
+  <!-- CANVAS -->
+  <div class="sim-area">
+    <div class="sim-title">
+      <span>📐 Right Triangle Trig Simulator — SOH·CAH·TOA</span>
+      <div class="live-dot"></div>
+    </div>
+    <canvas id="tri" width="680" height="380"></canvas>
+    <div class="ratio-strip">
+      <div>∠θ = <span id="angleDisp">—</span>°</div>
+      <div>Opposite = <span id="oppDisp">—</span></div>
+      <div>Adjacent = <span id="adjDisp">—</span></div>
+      <div>Hypotenuse = <span id="hypDisp">—</span></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div>
+      <div class="section-title">⚙ Triangle Controls</div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:10px;">
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Angle θ</span>
+            <span class="slider-value" id="angleVal">35°</span>
+          </div>
+          <input type="range" id="slAngle" min="5" max="85" step="1" value="35">
+        </div>
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Hypotenuse</span>
+            <span class="slider-value" id="hypVal">10</span>
+          </div>
+          <input type="range" id="slHyp" min="4" max="16" step="0.5" value="10">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">🎯 Highlight Ratio</div>
+      <div class="ratio-buttons" style="margin-top:10px;">
+        <button class="ratio-btn active" id="btnSin" onclick="setRatio('sin')">SOH</button>
+        <button class="ratio-btn" id="btnCos" onclick="setRatio('cos')">CAH</button>
+        <button class="ratio-btn" id="btnTan" onclick="setRatio('tan')">TOA</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">📊 Live Calculation</div>
+      <div class="info-box" id="infoBox"></div>
+    </div>
+
+    <button class="reset-btn" onclick="resetSim()">↺ Reset to 35°</button>
+
+    <div class="hint">
+      Drag the angle slider and watch which sides are used for sin, cos, and tan. Notice: sin and cos only need the hypotenuse; tan never does.
+    </div>
+  </div>
+</div>
+
+<script>
+let angle = 35, hyp = 10, activeRatio = 'sin';
+const canvas = document.getElementById('tri');
+const ctx = canvas.getContext('2d');
+
+function setRatio(r) {
+  activeRatio = r;
+  document.getElementById('btnSin').classList.toggle('active', r==='sin');
+  document.getElementById('btnCos').classList.toggle('active', r==='cos');
+  document.getElementById('btnTan').classList.toggle('active', r==='tan');
+  draw();
+}
+
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const rad = angle * Math.PI / 180;
+  const opp = hyp * Math.sin(rad);
+  const adj = hyp * Math.cos(rad);
+
+  // Layout: right angle at bottom-left, angle theta at bottom-right area? 
+  // Standard: theta at bottom right, opposite = vertical left side, adjacent = horizontal bottom
+  const scale = Math.min((W-160)/adj, (H-120)/opp, 28);
+  const baseX = 90, baseY = H - 70;
+  const adjPx = adj * scale;
+  const oppPx = opp * scale;
+
+  const A = {x: baseX, y: baseY};             // right-angle vertex (bottom-left)
+  const B = {x: baseX + adjPx, y: baseY};      // angle theta vertex (bottom-right)
+  const C = {x: baseX, y: baseY - oppPx};      // top vertex
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(79,195,247,0.05)';
+  ctx.lineWidth = 1;
+  for (let gx = 0; gx < W; gx += 30) { ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); }
+  for (let gy = 0; gy < H; gy += 30) { ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+
+  // Highlight relevant sides based on active ratio
+  const sideColors = { hyp: 'rgba(255,255,255,0.25)', opp: 'rgba(255,255,255,0.25)', adj: 'rgba(255,255,255,0.25)' };
+  if (activeRatio === 'sin') { sideColors.opp = '#4fc3f7'; sideColors.hyp = '#f0c866'; }
+  if (activeRatio === 'cos') { sideColors.adj = '#4fc3f7'; sideColors.hyp = '#f0c866'; }
+  if (activeRatio === 'tan') { sideColors.opp = '#4fc3f7'; sideColors.adj = '#e08a4f'; }
+
+  // Draw triangle fill
+  ctx.beginPath();
+  ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.lineTo(C.x,C.y); ctx.closePath();
+  ctx.fillStyle = 'rgba(79,195,247,0.06)';
+  ctx.fill();
+
+  // Adjacent (bottom side A-B)
+  ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y);
+  ctx.strokeStyle = sideColors.adj; ctx.lineWidth = sideColors.adj.includes('#') ? 4 : 2;
+  ctx.stroke();
+
+  // Opposite (left side A-C)
+  ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(C.x,C.y);
+  ctx.strokeStyle = sideColors.opp; ctx.lineWidth = sideColors.opp.includes('#') ? 4 : 2;
+  ctx.stroke();
+
+  // Hypotenuse (C-B)
+  ctx.beginPath(); ctx.moveTo(C.x,C.y); ctx.lineTo(B.x,B.y);
+  ctx.strokeStyle = sideColors.hyp; ctx.lineWidth = sideColors.hyp.includes('#') ? 4 : 2;
+  ctx.stroke();
+
+  // Right angle marker at A
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(A.x, A.y-14, 14, 14);
+
+  // Angle arc at B
+  ctx.beginPath();
+  ctx.arc(B.x, B.y, 30, Math.PI - rad, Math.PI, false);
+  ctx.strokeStyle = '#d4a843'; ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = '#d4a843';
+  ctx.font = '600 12px DM Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('θ', B.x - 42, B.y - 8);
+
+  // Vertex labels
+  ctx.fillStyle = '#c8dff0'; ctx.font = '600 11px DM Mono, monospace'; ctx.textAlign = 'center';
+  ctx.fillText('A', A.x - 14, A.y + 16);
+  ctx.fillText('B', B.x + 12, B.y + 16);
+  ctx.fillText('C', C.x - 14, C.y - 6);
+
+  // Side length labels
+  ctx.font = '500 11px DM Mono, monospace';
+  ctx.fillStyle = sideColors.adj.includes('#') ? sideColors.adj : '#8a9aa8';
+  ctx.fillText(adj.toFixed(1), (A.x+B.x)/2, A.y + 22);
+
+  ctx.fillStyle = sideColors.opp.includes('#') ? sideColors.opp : '#8a9aa8';
+  ctx.save();
+  ctx.translate(A.x - 22, (A.y+C.y)/2);
+  ctx.fillText(opp.toFixed(1), 0, 0);
+  ctx.restore();
+
+  ctx.fillStyle = sideColors.hyp.includes('#') ? sideColors.hyp : '#8a9aa8';
+  ctx.save();
+  ctx.translate((B.x+C.x)/2 + 14, (B.y+C.y)/2 - 6);
+  ctx.fillText(hyp.toFixed(1), 0, 0);
+  ctx.restore();
+
+  // Side type labels (small)
+  ctx.font = '400 8px Outfit, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText('adjacent', (A.x+B.x)/2, A.y + 34);
+  ctx.save();
+  ctx.translate(A.x - 22, (A.y+C.y)/2 + 12);
+  ctx.fillText('opposite', 0, 0);
+  ctx.restore();
+  ctx.save();
+  ctx.translate((B.x+C.x)/2 + 14, (B.y+C.y)/2 + 8);
+  ctx.fillText('hypotenuse', 0, 0);
+  ctx.restore();
+
+  // Update strip
+  document.getElementById('angleDisp').textContent = angle;
+  document.getElementById('oppDisp').textContent = opp.toFixed(2);
+  document.getElementById('adjDisp').textContent = adj.toFixed(2);
+  document.getElementById('hypDisp').textContent = hyp.toFixed(2);
+
+  // Update info box
+  const sinV = (opp/hyp).toFixed(4);
+  const cosV = (adj/hyp).toFixed(4);
+  const tanV = (opp/adj).toFixed(4);
+
+  let formula = '';
+  if (activeRatio === 'sin') formula = `<span class="lbl">sin(θ) = </span>opp/hyp = ${opp.toFixed(2)}/${hyp.toFixed(2)} = <span class="val">${sinV}</span>`;
+  if (activeRatio === 'cos') formula = `<span class="lbl">cos(θ) = </span>adj/hyp = ${adj.toFixed(2)}/${hyp.toFixed(2)} = <span class="val">${cosV}</span>`;
+  if (activeRatio === 'tan') formula = `<span class="lbl">tan(θ) = </span>opp/adj = ${opp.toFixed(2)}/${adj.toFixed(2)} = <span class="val">${tanV}</span>`;
+
+  document.getElementById('infoBox').innerHTML = `
+    <div>${formula}</div>
+    <div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;">
+      <span class="lbl">sin(θ)</span> = <span class="val">${sinV}</span><br>
+      <span class="lbl">cos(θ)</span> = <span class="val">${cosV}</span><br>
+      <span class="lbl">tan(θ)</span> = <span class="val">${tanV}</span>
+    </div>
+  `;
+}
+
+document.getElementById('slAngle').oninput = function() {
+  angle = parseFloat(this.value);
+  document.getElementById('angleVal').textContent = angle + '°';
+  draw();
+};
+document.getElementById('slHyp').oninput = function() {
+  hyp = parseFloat(this.value);
+  document.getElementById('hypVal').textContent = hyp;
+  draw();
+};
+
+function resetSim() {
+  angle = 35; hyp = 10;
+  document.getElementById('slAngle').value = 35;
+  document.getElementById('slHyp').value = 10;
+  document.getElementById('angleVal').textContent = '35°';
+  document.getElementById('hypVal').textContent = '10';
+  draw();
+}
+
+draw();
+</script>
+</body>
+</html>
